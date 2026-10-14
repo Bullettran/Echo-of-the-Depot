@@ -1,0 +1,19 @@
+# Godot 4 — кеш и сгенерированные файлы редактора
+.godot/
+*.translation
+
+# Экспортные сборки
+/build/
+export_credentials.cfg
+
+# Системные файлы
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Временные файлы
+*.tmp
+*~
+
+# Локальный конфиг opencode (содержит API-ключ, не выкладывать!)
+opencode.json
