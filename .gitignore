@@ -15,5 +15,8 @@ Desktop.ini
 *.tmp
 *~
 
+# Дебаг-артефакты (скриншоты и логи DebugTools)
+debug/
+
 # Локальный конфиг opencode (содержит API-ключ, не выкладывать!)
 opencode.json

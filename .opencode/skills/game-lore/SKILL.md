@@ -1,9 +1,9 @@
 ---
 name: game-lore
-description: Use when writing quests, dialogues, АРХИВ lines, item/zone/wagon/faction names, or any story content for «Последний Редут». Covers лор, реплики АРХИВА, квесты, фракции, имена. Reads history.md and enforces tone rules.
+description: Use when writing quests, dialogues, АРХИВ lines, item/zone/wagon/faction names, or any story content for «Echo of the Depot». Covers лор, реплики АРХИВА, квесты, фракции, имена. Reads history.md and enforces tone rules.
 ---
 
-# Скилл: Лор игры «Поезд "Последний Редут"»
+# Скилл: Лор игры «Echo of the Depot»
 
 ## Когда применяется
 

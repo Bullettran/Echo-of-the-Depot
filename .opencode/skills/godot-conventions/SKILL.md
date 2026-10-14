@@ -1,6 +1,6 @@
 ---
 name: godot-conventions
-description: Use when writing GDScript code (.gd) or creating Godot scenes (.tscn), nodes, or project files for «Последний Редут». Enforces typed GDScript, Russian comments on all code, naming, signals, and folder conventions.
+description: Use when writing GDScript code (.gd) or creating Godot scenes (.tscn), nodes, or project files for «Echo of the Depot». Enforces typed GDScript, Russian comments on all code, naming, signals, and folder conventions.
 ---
 
 # Скилл: Соглашения Godot / GDScript проекта

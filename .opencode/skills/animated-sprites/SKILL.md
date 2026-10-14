@@ -1,6 +1,6 @@
 ---
 name: animated-sprites
-description: Use when creating or wiring animated sprites for «Последний Редут» — AnimatedSprite2D, SpriteFrames, sprite sheets, placeholder art generation, animation naming, flip_h direction handling, Y-sort setup.
+description: Use when creating or wiring animated sprites for «Echo of the Depot» — AnimatedSprite2D, SpriteFrames, sprite sheets, placeholder art generation, animation naming, flip_h direction handling, Y-sort setup.
 ---
 
 # Скилл: Анимированные спрайты
