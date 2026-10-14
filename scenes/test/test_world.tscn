@@ -1,0 +1,62 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/test/ground.png" id="2_ground"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/crate.png" id="3_crate"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/barrel.png" id="4_barrel"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/signpost.png" id="5_signpost"]
+
+[node name="TestWorld" type="Node2D"]
+y_sort_enabled = true
+
+[node name="Ground" type="Sprite2D" parent="."]
+position = Vector2(-1024, -1024)
+texture = ExtResource("2_ground")
+centered = false
+
+[node name="SignPost1" type="Sprite2D" parent="."]
+position = Vector2(-150, -100)
+offset = Vector2(0, -48)
+texture = ExtResource("5_signpost")
+
+[node name="SignPost2" type="Sprite2D" parent="."]
+position = Vector2(180, -60)
+offset = Vector2(0, -48)
+texture = ExtResource("5_signpost")
+
+[node name="SignPost3" type="Sprite2D" parent="."]
+position = Vector2(60, 160)
+offset = Vector2(0, -48)
+texture = ExtResource("5_signpost")
+
+[node name="Crate1" type="Sprite2D" parent="."]
+position = Vector2(-80, 40)
+offset = Vector2(0, -20)
+texture = ExtResource("3_crate")
+
+[node name="Crate2" type="Sprite2D" parent="."]
+position = Vector2(100, -120)
+offset = Vector2(0, -20)
+texture = ExtResource("3_crate")
+
+[node name="Crate3" type="Sprite2D" parent="."]
+position = Vector2(200, 90)
+offset = Vector2(0, -20)
+texture = ExtResource("3_crate")
+
+[node name="Barrel1" type="Sprite2D" parent="."]
+position = Vector2(-200, 120)
+offset = Vector2(0, -26)
+texture = ExtResource("4_barrel")
+
+[node name="Barrel2" type="Sprite2D" parent="."]
+position = Vector2(140, -180)
+offset = Vector2(0, -26)
+texture = ExtResource("4_barrel")
+
+[node name="Barrel3" type="Sprite2D" parent="."]
+position = Vector2(-40, -220)
+offset = Vector2(0, -26)
+texture = ExtResource("4_barrel")
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
