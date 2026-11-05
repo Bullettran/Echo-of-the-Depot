@@ -2,16 +2,29 @@ import Phaser from 'phaser'
 
 const PLAYER_SPEED = 220
 
-interface MoveKeys {
-  W: Phaser.Input.Keyboard.Key
-  A: Phaser.Input.Keyboard.Key
-  S: Phaser.Input.Keyboard.Key
-  D: Phaser.Input.Keyboard.Key
-}
+// Физические коды клавиш (event.code) — работают на любой раскладке,
+// в отличие от event.keyCode, который на русской раскладке отдаёт код «Ц» для W и т.д.
+const CODE_W = 'KeyW'
+const CODE_A = 'KeyA'
+const CODE_S = 'KeyS'
+const CODE_D = 'KeyD'
 
 export class Player extends Phaser.GameObjects.Sprite {
+  private readonly pressedCodes = new Set<string>()
   private readonly cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys
-  private readonly moveKeys: MoveKeys
+
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    this.pressedCodes.add(event.code)
+  }
+
+  private readonly onKeyUp = (event: KeyboardEvent): void => {
+    this.pressedCodes.delete(event.code)
+  }
+
+  private readonly onBlur = (): void => {
+    // окно потеряло фокус при зажатой клавише — иначе «залипание» движения
+    this.pressedCodes.clear()
+  }
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'player')
@@ -26,7 +39,11 @@ export class Player extends Phaser.GameObjects.Sprite {
     const keyboard = scene.input.keyboard
     if (!keyboard) throw new Error('Keyboard plugin is not available')
     this.cursorKeys = keyboard.createCursorKeys()
-    this.moveKeys = keyboard.addKeys('W,A,S,D') as MoveKeys
+    keyboard.addCapture('W,A,S,D,UP,DOWN,LEFT,RIGHT')
+
+    window.addEventListener('keydown', this.onKeyDown)
+    window.addEventListener('keyup', this.onKeyUp)
+    window.addEventListener('blur', this.onBlur)
   }
 
   override update(): void {
@@ -34,10 +51,10 @@ export class Player extends Phaser.GameObjects.Sprite {
 
     let vx = 0
     let vy = 0
-    if (this.moveKeys.A.isDown || this.cursorKeys.left.isDown) vx -= 1
-    if (this.moveKeys.D.isDown || this.cursorKeys.right.isDown) vx += 1
-    if (this.moveKeys.W.isDown || this.cursorKeys.up.isDown) vy -= 1
-    if (this.moveKeys.S.isDown || this.cursorKeys.down.isDown) vy += 1
+    if (this.pressedCodes.has(CODE_A) || this.cursorKeys.left.isDown) vx -= 1
+    if (this.pressedCodes.has(CODE_D) || this.cursorKeys.right.isDown) vx += 1
+    if (this.pressedCodes.has(CODE_W) || this.cursorKeys.up.isDown) vy -= 1
+    if (this.pressedCodes.has(CODE_S) || this.cursorKeys.down.isDown) vy += 1
 
     if (vx !== 0 && vy !== 0) {
       vx /= Math.SQRT2
@@ -47,5 +64,13 @@ export class Player extends Phaser.GameObjects.Sprite {
 
     if (vx !== 0) this.setFlipX(vx < 0)
     this.setDepth(this.y)
+  }
+
+  override destroy(fromScene?: boolean): this {
+    window.removeEventListener('keydown', this.onKeyDown)
+    window.removeEventListener('keyup', this.onKeyUp)
+    window.removeEventListener('blur', this.onBlur)
+    super.destroy(fromScene)
+    return this
   }
 }
