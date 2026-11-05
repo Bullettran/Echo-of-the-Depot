@@ -9,6 +9,10 @@ const CODE_A = 'KeyA'
 const CODE_S = 'KeyS'
 const CODE_D = 'KeyD'
 
+/**
+ * Инженер. Худой по правилу №1: спрайт, движение, ввод.
+ * Вся игровая логика (нужды, условия) живёт в компонентах сцены, не здесь.
+ */
 export class Player extends Phaser.GameObjects.Sprite {
   private readonly pressedCodes = new Set<string>()
   private readonly cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys
@@ -26,11 +30,13 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.pressedCodes.clear()
   }
 
+  /** @param x, y — стартовая позиция (центр депо). */
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'player')
     scene.add.existing(this)
     scene.physics.add.existing(this)
 
+    // хитбокс меньше спрайта — проходимость и честные коллизии
     const body = this.body as Phaser.Physics.Arcade.Body
     body.setSize(12, 10)
     body.setOffset(2, 6)
@@ -46,6 +52,10 @@ export class Player extends Phaser.GameObjects.Sprite {
     window.addEventListener('blur', this.onBlur)
   }
 
+  /**
+   * Движение и Y-сортировка. ВАЖНО: вызывается сценой явно из Scene.update —
+   * UpdateList Phaser дёргает только preUpdate (см. скил web-game-dev, «Грабли»).
+   */
   override update(): void {
     const body = this.body as Phaser.Physics.Arcade.Body
 
@@ -56,6 +66,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     if (this.pressedCodes.has(CODE_W) || this.cursorKeys.up.isDown) vy -= 1
     if (this.pressedCodes.has(CODE_S) || this.cursorKeys.down.isDown) vy += 1
 
+    // диагональ не быстрее прямой
     if (vx !== 0 && vy !== 0) {
       vx /= Math.SQRT2
       vy /= Math.SQRT2
@@ -66,6 +77,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.setDepth(this.y)
   }
 
+  /** Снимает window-листенеры — дисциплина против дублей после рестарта сцены. */
   override destroy(fromScene?: boolean): this {
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)

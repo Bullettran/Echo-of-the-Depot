@@ -7,19 +7,26 @@ interface ActiveEntry {
 }
 
 /**
- * Активные состояния инженера (дебаффы). Чистый TS, без Phaser.
+ * Активные состояния инженера (дебаффы/баффы). Чистый TS, без Phaser.
  * Источник правды по конфигам — data/effects.json.
+ * Не знает про статы: StatsComponent решает, КОГДА включать условия,
+ * а отсюда читает эффекты (кап статов, урон HP).
  */
 export class ConditionsComponent {
   private readonly bus: EventBus<GameEventMap>
   private readonly configs: Record<E_ConditionId, S_EffectConfig>
   private readonly active = new Map<E_ConditionId, ActiveEntry>()
 
+  /** @param configs — таблица эффектов из data/effects.json. */
   constructor(bus: EventBus<GameEventMap>, configs: Record<E_ConditionId, S_EffectConfig>) {
     this.bus = bus
     this.configs = configs
   }
 
+  /**
+   * Включить условие (идемпотентно: повтор не дублирует и не эмитит).
+   * Эмитит 'conditions:changed'.
+   */
   activate(id: E_ConditionId): void {
     if (this.active.has(id)) return
     const config = this.configs[id]
@@ -28,11 +35,16 @@ export class ConditionsComponent {
     this.emitChanged()
   }
 
+  /**
+   * Выключить условие (если не было активно — ничего не делает).
+   * Эмитит 'conditions:changed' при фактическом снятии.
+   */
   deactivate(id: E_ConditionId): void {
     if (!this.active.delete(id)) return
     this.emitChanged()
   }
 
+  /** Списывает durationHours у временных условий; истёкшие снимаются с эмитом. */
   tick(dtHours: number): void {
     let changed = false
     for (const [id, entry] of [...this.active]) {
@@ -46,6 +58,7 @@ export class ConditionsComponent {
     if (changed) this.emitChanged()
   }
 
+  /** Активно ли условие прямо сейчас. */
   isActive(id: E_ConditionId): boolean {
     return this.active.has(id)
   }

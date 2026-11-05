@@ -1,16 +1,23 @@
 import Phaser from 'phaser'
 
+/**
+ * Загрузка и генерация текстур-заглушек. Пока нет Kenney-паков (W1.2),
+ * спрайты рисуются кодом в generateTexture — ассеты в репо не нужны.
+ * Ключи текстур проекта: 'player', 'ground' (пополняется здесь же).
+ */
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('boot')
   }
 
+  /** Генерирует плейсхолдеры и передаёт управление WorldScene. */
   create(): void {
     this.createPlayerTexture()
     this.createGroundTexture()
     this.scene.start('world')
   }
 
+  /** Текстура 'player' 16×16: спецовка + каска + маркер направления взгляда. */
   private createPlayerTexture(): void {
     const g = this.make.graphics({ x: 0, y: 0 }, false)
     // спецовка инженера
@@ -26,6 +33,7 @@ export class BootScene extends Phaser.Scene {
     g.destroy()
   }
 
+  /** Текстура 'ground' 32×32 (тайл бетонной плиты) — тайлится TileSprite'ом. */
   private createGroundTexture(): void {
     const g = this.make.graphics({ x: 0, y: 0 }, false)
     // бетон пустоши

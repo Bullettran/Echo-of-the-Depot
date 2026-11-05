@@ -13,8 +13,9 @@ const EMIT_PRECISION = 10
 
 /**
  * Нужды и здоровье инженера. Чистый TS, без Phaser.
- * Голод/жажда тикают от игровых часов (не от кадров), на нуле активируют
- * дебаффы через ConditionsComponent, те дрят HP. HP 0 → 'player:died'.
+ * Голод/жажда тикают от игровых часов, на нуле включают дебаффы через
+ * ConditionsComponent, активные дебаффы дрят HP. HP 0 → 'player:died',
+ * после чего сцена вызывает respawn() (статы 50% + «Перезагрузка носителя»).
  */
 export class StatsComponent {
   private readonly bus: EventBus<GameEventMap>
@@ -24,6 +25,7 @@ export class StatsComponent {
   private lastEmitted: S_StatsSnapshot
   private IsDead = false
 
+  /** @param config — таблица статов из data/stats.json; @param conditions — общие условия. */
   constructor(
     bus: EventBus<GameEventMap>,
     config: S_StatsConfig,
@@ -37,7 +39,11 @@ export class StatsComponent {
     this.emitSnapshot()
   }
 
-  /** Продвигает нужды на dtHours игровых часов. В мёртвом состоянии ничего не делает. */
+  /**
+   * Продвинуть нужды на dtHours игровых часов.
+   * Эмитит 'stats:changed' при изменении; при hp<=0 — 'player:died' (один раз).
+   * В мёртвом состоянии ничего не делает до respawn().
+   */
   tick(dtHours: number): void {
     if (this.IsDead || dtHours <= 0) return
 
@@ -53,7 +59,10 @@ export class StatsComponent {
     if (this.current.hp <= 0) this.die()
   }
 
-  /** Изменить стат (еда, вода, урон). Используется предметами и тестами. */
+  /**
+   * Изменить стат (еда, вода, урон от врагов/среды). Пороговые дебаффы
+   * пересчитываются сразу; урон в 0 убивает немедленно, не дожидаясь тика.
+   */
   add(type: E_StatType, amount: number): void {
     if (this.IsDead) return
     const key = type as StatKey
@@ -63,7 +72,11 @@ export class StatsComponent {
     if (this.current.hp <= 0) this.die()
   }
 
-  /** Вызывается сценой после 'player:died': статы на 50% + «Перезагрузка носителя». */
+  /**
+   * Воскрешение: статы на 50% от максимума, активируется «Перезагрузка носителя»
+   * (потолок 50% на 6 игровых часов — анти-эксплойт «умереть = телепорт»).
+   * Вызывается сценой в обработчике 'player:died'.
+   */
   respawn(): void {
     this.conditions.deactivate(E_ConditionId.Starving)
     this.conditions.deactivate(E_ConditionId.Dehydrated)
@@ -77,10 +90,12 @@ export class StatsComponent {
     this.emitSnapshot()
   }
 
+  /** Текущие абсолютные значения статов (копия — мутации снаружи не трогают мир). */
   get snapshot(): S_StatsSnapshot {
     return { ...this.current }
   }
 
+  /** Находится ли инженер в состоянии смерти (до respawn). */
   get IsDeadState(): boolean {
     return this.IsDead
   }
@@ -91,6 +106,7 @@ export class StatsComponent {
     return this.config.max[key] * (this.conditions.getStatCapPercent() / 100)
   }
 
+  /** Включает/выключает пороговые дебаффы по текущим значениям нужд. */
   private syncConditions(): void {
     if (this.current.hunger <= 0) this.conditions.activate(E_ConditionId.Starving)
     else this.conditions.deactivate(E_ConditionId.Starving)
@@ -113,6 +129,7 @@ export class StatsComponent {
     this.bus.emit('stats:changed', this.normalizedSnapshot())
   }
 
+  /** Эмитим только при изменении, округлённом до 0.1 — не спамим HUD каждый кадр. */
   private emitIfChanged(): void {
     const keys: StatKey[] = ['hp', 'hunger', 'thirst']
     const changed = keys.some(
@@ -123,6 +140,7 @@ export class StatsComponent {
     if (changed) this.emitSnapshot()
   }
 
+  /** Значения 0..1 к глобальному максимуму (полоски HUD не знают про капы). */
   private normalizedSnapshot(): { hp: number; hunger: number; thirst: number } {
     const norm = (type: E_StatType): number => {
       const key = type as StatKey

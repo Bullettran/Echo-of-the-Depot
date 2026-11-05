@@ -12,6 +12,10 @@ const WORLD_WIDTH = 1600
 const WORLD_HEIGHT = 1200
 const WALL_THICKNESS = 32
 
+/**
+ * Мир главы: тайлмап-заглушка, сущности, порядок тиков систем и смерть/респаун.
+ * Оркестратор — сам ничего не считает: время/нужды/условия живут в системах и компонентах.
+ */
 export class WorldScene extends Phaser.Scene {
   private player!: Player
   private timeSystem!: TimeSystem
@@ -23,6 +27,7 @@ export class WorldScene extends Phaser.Scene {
     super('world')
   }
 
+  /** Построение мира. Порядок тиков в update(): время → условия → статы → игрок. */
   create(): void {
     this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'ground').setOrigin(0)
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
@@ -60,8 +65,11 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Игровой цикл сцены. dt клампится (сворачивание вкладки не должно телепортировать время),
+   * TimeSystem возвращает игровые часы — их получают условия и нужды.
+   */
   update(_time: number, delta: number): void {
-    // кламп от прыжка времени после сворачивания вкладки
     const dtMs = Math.min(delta, 50)
     const dtHours = this.timeSystem.update(dtMs)
     this.conditions.tick(dtHours)
@@ -71,6 +79,7 @@ export class WorldScene extends Phaser.Scene {
     this.player.update()
   }
 
+  /** Рамка мира из статических прямоугольников (пока нет тайлмап-коллизий из Tiled, W1.2+). */
   private createWalls(): void {
     this.walls = this.physics.add.staticGroup()
     const addWall = (x: number, y: number, w: number, h: number): void => {
