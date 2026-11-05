@@ -3,6 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [master, '1']
+    paths-ignore:
+      - 'Docs/**'
+      - '**.md'
+      - '.opencode/**'
   workflow_dispatch:
 
 permissions:

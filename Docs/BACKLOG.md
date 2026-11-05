@@ -89,3 +89,10 @@
 - [x] Git: init + LFS + initial commit (локальный архив)
 - [x] Фундамент: папки, eнумы, структуры, худой BP_Player
 - [x] WBP_BaseWidget: убран CastToBP_Player (сделано пользователем вручную); игрок более не хранит InterfaceRef — виджеты самодостаточны.
+
+---
+
+# BACKLOG — WEB-трек (echoofthedepotweb)
+
+- [ ] **[web, W0-урок, 05.11]** Playwright smoke-тест «страница загрузилась → игрок сдвинулся по WASD → консоль 0 ошибок» в гейты. Причина: баг «UpdateList вызывает только preUpdate» прошёл typecheck/lint/test/build и уехал в прод — гейты не видят рантайм.
+- [ ] **[web, W1]** Скилл-урок учтён в web-game-dev («Грабли»), при ревью новых сущностей проверять: update() запускается из сцены явно.
