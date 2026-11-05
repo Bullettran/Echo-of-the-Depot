@@ -1,0 +1,64 @@
+:root {
+  --bg: #12141c;
+  --panel: rgba(10, 14, 24, 0.82);
+  --terminal: #9ece6a;
+  --text: #c0caf5;
+  --muted: #565f89;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+}
+
+#game canvas {
+  image-rendering: pixelated;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: 'Share Tech Mono', ui-monospace, monospace;
+  color: var(--text);
+}
+
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hud-panel {
+  background: var(--panel);
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 15px;
+  width: fit-content;
+}
+
+#hud-clock {
+  color: var(--terminal);
+  letter-spacing: 1px;
+}
+
+#hud-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
