@@ -28,8 +28,10 @@ export class TimeSystem {
     this.lastPhase = this.computePhase()
   }
 
-  update(dtMs: number): void {
-    this.elapsedHours += (dtMs / this.dayLengthMs) * 24
+  /** Продвигает время; возвращает прошедшие игровые часы — для тиков систем выживания. */
+  update(dtMs: number): number {
+    const hours = (dtMs / this.dayLengthMs) * 24
+    this.elapsedHours += hours
 
     const minuteIndex = Math.floor(this.elapsedHours * 60)
     if (minuteIndex !== this.lastMinuteIndex) {
@@ -52,6 +54,7 @@ export class TimeSystem {
       this.lastPhase = phase
       this.bus.emit('time:phase', { phase })
     }
+    return hours
   }
 
   get day(): number {

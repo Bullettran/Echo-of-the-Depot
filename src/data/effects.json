@@ -1,0 +1,18 @@
+{
+  "starving": {
+    "id": "starving",
+    "name": "Голодание",
+    "hpPerHour": -4
+  },
+  "dehydrated": {
+    "id": "dehydrated",
+    "name": "Обезвоживание",
+    "hpPerHour": -6
+  },
+  "carrier-restart": {
+    "id": "carrier-restart",
+    "name": "Перезагрузка носителя",
+    "durationHours": 6,
+    "statCapPercent": 50
+  }
+}

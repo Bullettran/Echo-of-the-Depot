@@ -1,0 +1,5 @@
+{
+  "start": { "hp": 100, "hunger": 80, "thirst": 80 },
+  "max": { "hp": 100, "hunger": 100, "thirst": 100 },
+  "decayPerHour": { "hunger": 4, "thirst": 5 }
+}

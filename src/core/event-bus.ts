@@ -1,4 +1,4 @@
-import { E_TimePhase } from '../data/types'
+import { E_TimePhase, type S_ConditionView } from '../data/types'
 
 type Handler<T> = (payload: T) => void
 
@@ -6,6 +6,10 @@ export type GameEventMap = {
   'time:minute': { day: number; hour: number; minute: number }
   'time:newDay': { day: number }
   'time:phase': { phase: E_TimePhase }
+  /** Значения нормированы 0..1 к глобальному максимуму стата. */
+  'stats:changed': { hp: number; hunger: number; thirst: number }
+  'conditions:changed': { active: S_ConditionView[] }
+  'player:died': { hp: number }
 }
 
 export class EventBus<M extends Record<string, unknown>> {

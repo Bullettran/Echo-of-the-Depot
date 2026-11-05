@@ -9,4 +9,13 @@ export function mountWorldToDomBridge(): void {
   gameEvents.on('time:minute', ({ day, hour, minute }) => {
     hud.setClock(day, hour, minute)
   })
+  gameEvents.on('stats:changed', (stats) => {
+    hud.setStats(stats)
+  })
+  gameEvents.on('conditions:changed', ({ active }) => {
+    hud.setConditions(active)
+  })
+  gameEvents.on('player:died', () => {
+    hud.showStatus('Носитель перезагружен. Системы восстановлены на 50%.')
+  })
 }

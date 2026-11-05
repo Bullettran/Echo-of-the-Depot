@@ -62,3 +62,78 @@ body {
   color: var(--muted);
   font-size: 12px;
 }
+
+#stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  width: 36px;
+}
+
+.stat-track {
+  width: 140px;
+  height: 8px;
+  background: #0a0e18;
+  border: 1px solid #2a2f3d;
+}
+
+.stat-fill {
+  height: 100%;
+  width: 100%;
+  transition: width 0.25s linear;
+}
+
+.stat-fill.hp {
+  background: #e05561;
+}
+
+.stat-fill.hunger {
+  background: #d9a23a;
+}
+
+.stat-fill.thirst {
+  background: #5aa0d9;
+}
+
+#hud-conditions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.condition-badge {
+  background: rgba(94, 32, 32, 0.85);
+  border: 1px solid #a04545;
+  color: #ffb4b4;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+#hud-status {
+  color: var(--terminal);
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  max-width: 320px;
+}
+
+#hud-status.visible {
+  opacity: 1;
+}

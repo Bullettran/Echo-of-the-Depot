@@ -1,7 +1,12 @@
 import Phaser from 'phaser'
+import { ConditionsComponent } from '../components/conditions-component'
+import { StatsComponent } from '../components/stats-component'
 import { gameEvents } from '../core/event-bus'
+import { E_ConditionId, E_StatType, type S_EffectConfig, type S_StatsConfig } from '../data/types'
 import { Player } from '../entities/player'
 import { TimeSystem } from '../systems/time-system'
+import effectsJson from '../data/effects.json'
+import statsJson from '../data/stats.json'
 
 const WORLD_WIDTH = 1600
 const WORLD_HEIGHT = 1200
@@ -10,6 +15,8 @@ const WALL_THICKNESS = 32
 export class WorldScene extends Phaser.Scene {
   private player!: Player
   private timeSystem!: TimeSystem
+  private stats!: StatsComponent
+  private conditions!: ConditionsComponent
   private walls!: Phaser.Physics.Arcade.StaticGroup
 
   constructor() {
@@ -30,17 +37,35 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
     this.timeSystem = new TimeSystem(gameEvents)
+    this.conditions = new ConditionsComponent(
+      gameEvents,
+      effectsJson as Record<E_ConditionId, S_EffectConfig>,
+    )
+    this.stats = new StatsComponent(gameEvents, statsJson as S_StatsConfig, this.conditions)
 
-    // dev-only хук для смоук-тестов (playwright-cli): читаем позицию игрока
+    // смерть → респаун в центре депо (позже — у депо), статы восстанавливает сам StatsComponent
+    const offDied = gameEvents.on('player:died', () => {
+      this.player.setPosition(WORLD_WIDTH / 2, WORLD_HEIGHT / 2)
+      this.stats.respawn()
+    })
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offDied)
+
+    // dev-only хук для смоук-тестов (playwright-cli)
     if (import.meta.env.DEV) {
-      ;(window as unknown as Record<string, unknown>).__eotd = { player: this.player }
+      ;(window as unknown as Record<string, unknown>).__eotd = {
+        player: this.player,
+        stats: this.stats,
+        E_StatType,
+      }
     }
   }
 
   update(_time: number, delta: number): void {
     // кламп от прыжка времени после сворачивания вкладки
     const dtMs = Math.min(delta, 50)
-    this.timeSystem.update(dtMs)
+    const dtHours = this.timeSystem.update(dtMs)
+    this.conditions.tick(dtHours)
+    this.stats.tick(dtHours)
     // UpdateList Phaser вызывает у GameObjects только preUpdate —
     // update() игрока запускаем из сцены явно
     this.player.update()
