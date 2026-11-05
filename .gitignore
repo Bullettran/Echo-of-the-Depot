@@ -5,3 +5,6 @@ coverage/
 .DS_Store
 Thumbs.db
 .idea/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+.claude/

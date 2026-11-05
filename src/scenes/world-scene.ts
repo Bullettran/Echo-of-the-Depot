@@ -30,6 +30,11 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
     this.timeSystem = new TimeSystem(gameEvents)
+
+    // dev-only хук для смоук-тестов (playwright-cli): читаем позицию игрока
+    if (import.meta.env.DEV) {
+      ;(window as unknown as Record<string, unknown>).__eotd = { player: this.player }
+    }
   }
 
   update(_time: number, delta: number): void {
