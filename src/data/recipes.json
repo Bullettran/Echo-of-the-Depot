@@ -1,0 +1,26 @@
+{
+  "bandage": {
+    "id": "bandage",
+    "name": "Бинт",
+    "cost": { "cloth": 2 },
+    "result": { "itemId": "bandage", "count": 1 }
+  },
+  "filter": {
+    "id": "filter",
+    "name": "Фильтр для воды",
+    "cost": { "scrap": 1, "cloth": 1 },
+    "result": { "itemId": "filter", "count": 1 }
+  },
+  "stew": {
+    "id": "stew",
+    "name": "Горячая похлёбка",
+    "cost": { "ration": 1, "water": 1 },
+    "result": { "itemId": "stew", "count": 1 }
+  },
+  "repair-kit": {
+    "id": "repair-kit",
+    "name": "Ремкомплект",
+    "cost": { "scrap": 3, "copper": 2 },
+    "result": { "itemId": "repair-kit", "count": 1 }
+  }
+}

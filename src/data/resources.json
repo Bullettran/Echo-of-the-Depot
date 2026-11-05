@@ -22,7 +22,8 @@
     "texture": "node-cache",
     "drops": [
       { "itemId": "ration", "count": 1 },
-      { "itemId": "water", "count": 1 }
+      { "itemId": "water", "count": 1 },
+      { "itemId": "cloth", "count": 1 }
     ],
     "respawnHours": 4
   }

@@ -87,3 +87,14 @@ export interface S_ResourceConfig {
   /** Часов до респауна после истощения (игровых: день = 24 часа = 10 реальных минут). */
   respawnHours: number
 }
+
+export interface S_RecipeConfig {
+  id: string
+  name: string
+  /** Затраты: itemId → количество. */
+  cost: Record<string, number>
+  result: {
+    itemId: string
+    count: number
+  }
+}

@@ -22,6 +22,9 @@ export type GameEventMap = {
   'inventory:full': { itemId: string }
   /** Команда из UI: употребить предмет (валидацию делает мир). */
   'ui:use-item': { itemId: string }
+  /** Команда из UI: скрафтить рецепт (валидацию делает мир). */
+  'ui:craft': { recipeId: string }
+  'crafting:crafted': { recipeId: string; itemId: string; count: number }
 }
 
 /**

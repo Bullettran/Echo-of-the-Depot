@@ -95,6 +95,14 @@ export class StatsComponent {
     return { ...this.current }
   }
 
+  /** Восстановить статы из сейва (с пересчётом пороговых дебаффов). */
+  restore(snapshot: S_StatsSnapshot): void {
+    this.current = { ...snapshot }
+    this.IsDead = false
+    this.syncConditions()
+    this.emitSnapshot()
+  }
+
   /** Находится ли инженер в состоянии смерти (до respawn). */
   get IsDeadState(): boolean {
     return this.IsDead

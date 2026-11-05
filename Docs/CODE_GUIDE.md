@@ -57,7 +57,8 @@ UI никогда не читает мир сам; мир не читает DOM.
   (нет поля = активен, пока есть условие-источник); `statCapPercent` — потолок всех статов, %.
 
 ### items.json — предметы
-- `type`: `material` (строительный ресурс) | `consumable` (можно употребить кликом в инвентаре).
+- `type`: `material` (строительный ресурс) | `consumable` (употребляется кликом) | `component`
+  (детали для станции, W2 — ремкомплект).
 - `stack` — вместимость слота; `use` — эффект употребления (какие статы и на сколько).
 - **Как добавить предмет:** блок в items.json (+ CSS-класс `.item-{id}` с цветом для иконки).
   UI подхватит имя/тултип автоматически.
@@ -67,6 +68,11 @@ UI никогда не читает мир сам; мир не читает DOM.
   `drops` — что даёт при сборе; `respawnHours` — через сколько **игровых** часов оживает.
 - **Как добавить тип ноды:** блок в resources.json + текстура в BootScene `createNodeTextures()`
   + точка в `NODE_LAYOUT` (WorldScene). С W2 точки переедут в объектный слой Tiled-карты.
+
+### recipes.json — рецепты (W1.3)
+- `cost` — itemId → количество; `result` — что выдаётся.
+- **Как добавить рецепт:** блок в recipes.json; если результат — новый предмет, добавить его
+  в items.json. Секция крафта в панели рюкзака подхватит автоматически.
 
 ### inventory.json
 - `capacity` — число слотов рюкзака (используют InventoryComponent и сетка UI).
@@ -100,8 +106,10 @@ UI никогда не читает мир сам; мир не читает DOM.
 | `interact:prompt` | label \| null | Interact → HUD промпт «[E] …» |
 | `loot:collected` | itemId, count | ResourceNode → тост «+N Предмет» |
 | `inventory:changed` | слоты | Inventory → панель рюкзака |
-| `inventory:full` | itemId | ResourceNode → тост «Рюкзак полон» |
+| `inventory:full` | itemId | ResourceNode/Crafting → тост «Рюкзак полон» |
 | `ui:use-item` | itemId | панель рюкзака → сцена (употребить) |
+| `ui:craft` | recipeId | панель крафта → сцена (создать) |
+| `crafting:crafted` | recipeId, itemId, count | CraftingSystem → тост «Создано: …» |
 
 **Как добавить событие:** ключ `domain:name` в `GameEventMap` (тип payload обязательно),
 эмит из системы, подписка в bridge (если нужен UI). UI не подписывается нигде больше.
@@ -116,6 +124,7 @@ UI никогда не читает мир сам; мир не читает DOM.
 | `update(dtMs)` | двигает время; эмитит `time:minute` / `time:newDay` / `time:phase`; **возвращает игровые часы** — их кормят Conditions/Stats |
 | `day` / `hour` / `minute` | текущее время суток |
 | `phase` | фаза суток (границы — в `computePhase`) |
+| `totalHours` / `setTime(hours)` | поле сейва / восстановление из сейва (без эмитов) |
 
 - Длина дня: константа `DEFAULT_DAY_LENGTH_MS` = 600 000 (10 мин, WEB_PLAN §2).
 - **Доработка (W4):** расписание событий волн — подписчик `time:newDay` в WaveDirector,
@@ -164,10 +173,31 @@ UI никогда не читает мир сам; мир не читает DOM.
 | `remove(itemId, count)` | атомарно забирает (не хватает — false, ничего не тронуто) | `inventory:changed` |
 | `count(itemId)` / `slotsView` | чтение | — |
 | `canFit(entries)` | сухой прогон «влезет ли весь набор» — ноды тратятся только при полном помещении | — |
+| `canFitAfterRemoving(removals, additions)` | влезет ли результат крафта с учётом освободившихся затрат | — |
+| `restore(slots)` | восстановить из сейва | `inventory:changed` |
 
 - Число слотов — data/inventory.json; стеки предметов — items.json (`stack`).
 - **Доработка (по GAME_PLAN):** весовой лимит/Overburdened — добавить поле `weight` в
   items.json и подсчёт в этом компоненте; UI перегруза — слушатель `inventory:changed`.
+
+### `CraftingSystem` (systems/crafting-system.ts) — крафт
+| Метод | Делает | События |
+|---|---|---|
+| `has(recipeId)` / `canCraft(recipeId)` | проверка рецепта/материалов | — |
+| `craft(recipeId)` | списать затраты + выдать результат (атомарно; отклоняется, если результат не влезает даже с учётом освободившихся слотов) | `crafting:crafted`, `inventory:full` |
+
+- Верстак появится в W5 как build-spot; пока крафт «полевой» — секция в панели рюкзака.
+
+### `SaveSystem` (core/save-system.ts) — сейв localStorage
+| Метод | Делает |
+|---|---|
+| `save(data)` / `load()` / `clear()` | запись/чтение/стирание JSON в localStorage, ключ `eotd-save-v1` |
+
+- Схема — `S_SaveData` (`schemaVersion: 1`): время, статы, рюкзак, состояние нод.
+- Сейв собирает WorldScene (`saveGame()`), загрузка при старте (`loadGame()`),
+  автосейв каждые 10 реальных секунд (`AUTOSAVE_INTERVAL_MS`).
+- **Доработка:** новый сохраняемый объект (постройки W5) — поле в `S_SaveData`,
+  поднять `schemaVersion`, миграцию старого сейва — в `SaveSystem.load()`.
 
 ### `InteractComponent` (interact-component.ts) — взаимодействие по E
 | Метод | Делает | События |
@@ -239,7 +269,7 @@ UI никогда не читает мир сам; мир не читает DOM.
 | Метод | Делает |
 |---|---|
 | `toggle()` | открыть/закрыть (Tab ловится в мосту) |
-| `render(slots)` | сетка слотов; тултип через `title`; клик по consumable → команда |
+| `render(slots)` | сетка слотов + секция крафта (have/need, кнопка «Создать»); тултипы через `title`; клики → команды |
 
 ### `Toasts` (ui/toasts/toasts.ts)
 | Метод | Делает |
@@ -271,8 +301,9 @@ UI никогда не читает мир сам; мир не читает DOM.
    ```
 3. **Dev-хук** `window.__eotd` (только DEV-сборка): `player` (спрайт: `.setPosition`),
    `stats` (StatsComponent: `.add()`, `.snapshot`, `.IsDeadState`), `inventory`
-   (InventoryComponent: `.slotsView`, `.count()`), `E_StatType`.
-   Прод-сборка хук не содержит.
+   (InventoryComponent: `.slotsView`, `.count()`, `.add()`), `crafting` (CraftingSystem),
+   `saveGame()` / `clearSave()` — принудительный сейв/сброс для тестов, `E_StatType`.
+   Прод-сборка хук не содержит. Сброс прогресса игрока: `localStorage.clear()` в консоли.
 
 ## 8. Чек-лист доработки (перед «готово»)
 

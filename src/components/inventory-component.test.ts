@@ -6,6 +6,7 @@ import { InventoryComponent } from './inventory-component'
 const ITEMS: Record<string, S_ItemConfig> = {
   scrap: { id: 'scrap', name: 'Металлолом', type: 'material', stack: 50 },
   ration: { id: 'ration', name: 'Консервы', type: 'consumable', stack: 2 },
+  cloth: { id: 'cloth', name: 'Ткань', type: 'material', stack: 2 },
 }
 
 function make(capacity = 3) {
@@ -80,6 +81,35 @@ describe('InventoryComponent', () => {
     expect(inventory.remove('scrap', 5)).toBe(false)
     expect(inventory.count('scrap')).toBe(3)
     expect(inventory.remove('copper', 1)).toBe(false)
+  })
+
+  it('canFitAfterRemoving — место появляется после списания затрат', () => {
+    const { inventory } = make(2)
+    // слот 0: ткань×2 (стак 2), слот 1: металлолом×50 — рюкзак полон
+    inventory.add('cloth', 2)
+    inventory.add('scrap', 50)
+
+    // без удаления металлолом×50 не влезает, с удалением ткани — влезает
+    expect(inventory.canFit([{ itemId: 'scrap', count: 50 }])).toBe(false)
+    expect(
+      inventory.canFitAfterRemoving([{ itemId: 'cloth', count: 2 }], [
+        { itemId: 'scrap', count: 50 },
+      ]),
+    ).toBe(true)
+    // сухой прогон ничего не изменил
+    expect(inventory.count('cloth')).toBe(2)
+  })
+
+  it('restore восстанавливает слоты из сейва', () => {
+    const { inventory } = make(3)
+    inventory.add('scrap', 5)
+
+    inventory.restore([{ itemId: 'ration', count: 1 }, { itemId: 'scrap', count: 2 }])
+
+    expect(inventory.slotsView).toEqual([
+      { itemId: 'ration', count: 1 },
+      { itemId: 'scrap', count: 2 },
+    ])
   })
 
   it('неизвестный предмет бросает ошибку', () => {

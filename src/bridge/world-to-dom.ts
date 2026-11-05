@@ -1,10 +1,11 @@
 import { gameEvents } from '../core/event-bus'
-import type { S_ItemConfig } from '../data/types'
+import type { S_ItemConfig, S_RecipeConfig } from '../data/types'
 import { Hud } from '../ui/hud/hud'
 import { InventoryPanel } from '../ui/inventory/inventory-panel'
 import { Toasts } from '../ui/toasts/toasts'
 import inventoryJson from '../data/inventory.json'
 import itemsJson from '../data/items.json'
+import recipesJson from '../data/recipes.json'
 
 /**
  * Мост «мир → DOM» (правило №3): ЕДИНСТВЕННОЕ место, где подписки UI
@@ -16,13 +17,16 @@ export function mountWorldToDomBridge(): void {
   if (!root) throw new Error('#ui root element not found')
 
   const items = itemsJson as Record<string, S_ItemConfig>
+  const recipes = recipesJson as Record<string, S_RecipeConfig>
   const hud = new Hud(root)
   const toasts = new Toasts(root)
   const inventoryPanel = new InventoryPanel(
     root,
     items,
+    recipes,
     inventoryJson.capacity,
     (itemId) => gameEvents.emit('ui:use-item', { itemId }),
+    (recipeId) => gameEvents.emit('ui:craft', { recipeId }),
   )
 
   gameEvents.on('time:minute', ({ day, hour, minute }) => {
@@ -49,6 +53,10 @@ export function mountWorldToDomBridge(): void {
   })
   gameEvents.on('inventory:changed', ({ slots }) => {
     inventoryPanel.render(slots)
+  })
+  gameEvents.on('crafting:crafted', ({ itemId, count }) => {
+    const name = items[itemId]?.name ?? itemId
+    toasts.show(`Создано: ${name} ×${count}`)
   })
 
   // Tab — рюкзак: UI-комбинация, ловится в мосту (мир про неё не знает)

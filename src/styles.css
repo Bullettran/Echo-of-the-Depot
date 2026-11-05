@@ -254,6 +254,10 @@ body {
   background: #b87333;
 }
 
+.item-cloth {
+  background: #a08c6e;
+}
+
 .item-ration {
   background: #7a8f4e;
 }
@@ -262,10 +266,86 @@ body {
   background: #3b6ea5;
 }
 
+.item-bandage {
+  background: #d9d9d9;
+}
+
+.item-filter {
+  background: #5a8a5a;
+}
+
+.item-stew {
+  background: #b06a3b;
+}
+
+.item-repair-kit {
+  background: #c9a227;
+}
+
 .inv-count {
   position: absolute;
   right: 3px;
   bottom: 1px;
   font-size: 11px;
   color: var(--text);
+}
+
+#craft-title {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--muted);
+  border-bottom: 1px solid var(--muted);
+}
+
+#craft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.craft-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #0a0e18;
+  border: 1px solid #2a2f3d;
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+
+.craft-name {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.craft-cost {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: pre;
+}
+
+.craft-btn {
+  align-self: flex-end;
+  background: #1a2030;
+  border: 1px solid var(--terminal);
+  color: var(--terminal);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.craft-btn:disabled {
+  border-color: #3a3f4d;
+  color: #3a3f4d;
+  cursor: default;
+}
+
+.craft-btn:not(:disabled):hover {
+  background: #24304a;
 }

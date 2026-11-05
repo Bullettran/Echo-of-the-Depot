@@ -77,4 +77,19 @@ export class ResourceNode extends Phaser.GameObjects.Sprite implements I_Interac
       this.setAlpha(1)
     }
   }
+
+  /** Слепок для сейва (configId проставляет сцена). */
+  saveState(): { IsDepleted: boolean; remainingHours: number } {
+    return {
+      IsDepleted: this.nodeState === 'depleted',
+      remainingHours: this.respawnRemainingHours,
+    }
+  }
+
+  /** Восстановить из сейва. */
+  restore(state: { IsDepleted: boolean; remainingHours: number }): void {
+    this.nodeState = state.IsDepleted ? 'depleted' : 'ready'
+    this.respawnRemainingHours = state.remainingHours
+    this.setAlpha(this.nodeState === 'ready' ? 1 : 0.25)
+  }
 }

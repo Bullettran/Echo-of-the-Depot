@@ -1,6 +1,7 @@
 {
   "scrap": { "id": "scrap", "name": "Металлолом", "type": "material", "stack": 50 },
   "copper": { "id": "copper", "name": "Медь", "type": "material", "stack": 50 },
+  "cloth": { "id": "cloth", "name": "Ткань", "type": "material", "stack": 30 },
   "ration": {
     "id": "ration",
     "name": "Консервы",
@@ -14,5 +15,32 @@
     "type": "consumable",
     "stack": 10,
     "use": { "thirst": 50 }
+  },
+  "bandage": {
+    "id": "bandage",
+    "name": "Бинт",
+    "type": "consumable",
+    "stack": 10,
+    "use": { "hp": 30 }
+  },
+  "filter": {
+    "id": "filter",
+    "name": "Фильтр для воды",
+    "type": "consumable",
+    "stack": 10,
+    "use": { "thirst": 70 }
+  },
+  "stew": {
+    "id": "stew",
+    "name": "Горячая похлёбка",
+    "type": "consumable",
+    "stack": 5,
+    "use": { "hunger": 70, "thirst": 30 }
+  },
+  "repair-kit": {
+    "id": "repair-kit",
+    "name": "Ремкомплект",
+    "type": "component",
+    "stack": 5
   }
 }

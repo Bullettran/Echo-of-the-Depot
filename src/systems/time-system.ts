@@ -87,6 +87,19 @@ export class TimeSystem {
     return this.computePhase()
   }
 
+  /** Всего прошедших игровых часов — поле сейва. */
+  get totalHours(): number {
+    return this.elapsedHours
+  }
+
+  /** Восстановить время из сейва; счётчики событий пересчитываются без эмитов. */
+  setTime(hours: number): void {
+    this.elapsedHours = hours
+    this.lastMinuteIndex = Math.floor(this.elapsedHours * 60)
+    this.lastDay = this.day
+    this.lastPhase = this.computePhase()
+  }
+
   private computePhase(): E_TimePhase {
     const h = this.hour
     if (h >= 5 && h < 7) return E_TimePhase.Dawn

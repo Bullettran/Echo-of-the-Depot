@@ -3,6 +3,7 @@ import { ConditionsComponent } from '../components/conditions-component'
 import { InventoryComponent } from '../components/inventory-component'
 import { InteractComponent } from '../components/interact-component'
 import { StatsComponent } from '../components/stats-component'
+import { SaveSystem, type S_SaveData } from '../core/save-system'
 import { gameEvents } from '../core/event-bus'
 import {
   E_ConditionId,
@@ -14,10 +15,12 @@ import {
 } from '../data/types'
 import { Player } from '../entities/player'
 import { ResourceNode } from '../entities/resource-node'
+import { CraftingSystem, type RecipesTable } from '../systems/crafting-system'
 import { TimeSystem } from '../systems/time-system'
 import effectsJson from '../data/effects.json'
 import inventoryJson from '../data/inventory.json'
 import itemsJson from '../data/items.json'
+import recipesJson from '../data/recipes.json'
 import resourcesJson from '../data/resources.json'
 import statsJson from '../data/stats.json'
 
@@ -25,6 +28,7 @@ const WORLD_WIDTH = 1600
 const WORLD_HEIGHT = 1200
 const WALL_THICKNESS = 32
 const INTERACT_RADIUS = 96
+const AUTOSAVE_INTERVAL_MS = 10_000
 
 /** Ручная расстановка нод до Tiled-карты (W2): id конфига из resources.json + позиция. */
 const NODE_LAYOUT: Array<{ configId: string; x: number; y: number }> = [
@@ -47,6 +51,9 @@ export class WorldScene extends Phaser.Scene {
   private conditions!: ConditionsComponent
   private inventory!: InventoryComponent
   private interact!: InteractComponent
+  private crafting!: CraftingSystem
+  private saveSystem!: SaveSystem
+  private saveTimerMs = 0
   private nodes: ResourceNode[] = []
   private walls!: Phaser.Physics.Arcade.StaticGroup
 
@@ -97,6 +104,18 @@ export class WorldScene extends Phaser.Scene {
     )
     this.interact.bindKey()
 
+    // крафт: рецепты + рюкзак; команда из UI — 'ui:craft'
+    this.crafting = new CraftingSystem(
+      gameEvents,
+      recipesJson as RecipesTable,
+      this.inventory,
+    )
+    const offCraft = gameEvents.on('ui:craft', ({ recipeId }) => this.crafting.craft(recipeId))
+
+    // сейв: загрузка при старте, автосейв каждые AUTOSAVE_INTERVAL_MS
+    this.saveSystem = new SaveSystem(window.localStorage)
+    this.loadGame()
+
     // команда из UI: употребить предмет (клик по слоту в инвентаре)
     const offUseItem = gameEvents.on('ui:use-item', ({ itemId }) => this.useItem(itemId))
 
@@ -106,6 +125,7 @@ export class WorldScene extends Phaser.Scene {
       this.stats.respawn()
     })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offCraft()
       offUseItem()
       offDied()
       this.interact.destroy()
@@ -117,6 +137,9 @@ export class WorldScene extends Phaser.Scene {
         player: this.player,
         stats: this.stats,
         inventory: this.inventory,
+        crafting: this.crafting,
+        saveGame: () => this.saveGame(),
+        clearSave: () => this.saveSystem.clear(),
         E_StatType,
       }
     }
@@ -136,6 +159,47 @@ export class WorldScene extends Phaser.Scene {
     // UpdateList Phaser вызывает у GameObjects только preUpdate —
     // update() игрока запускаем из сцены явно
     this.player.update()
+
+    // автосейв: копим реальное время, периодически пишем слепок мира
+    this.saveTimerMs += dtMs
+    if (this.saveTimerMs >= AUTOSAVE_INTERVAL_MS) {
+      this.saveTimerMs = 0
+      this.saveGame()
+    }
+  }
+
+  /** Слепок мира в localStorage (время, статы, рюкзак, состояние нод). */
+  private saveGame(): void {
+    const nodes: S_SaveData['nodes'] = []
+    this.nodes.forEach((node, index) => {
+      const layout = NODE_LAYOUT[index]
+      if (!layout) return
+      nodes.push({ configId: layout.configId, ...node.saveState() })
+    })
+    const data: S_SaveData = {
+      schemaVersion: 1,
+      timeHours: this.timeSystem.totalHours,
+      stats: this.stats.snapshot,
+      inventory: this.inventory.slotsView,
+      nodes,
+    }
+    this.saveSystem.save(data)
+  }
+
+  /** Загрузка сейва при старте. Сопоставление нод — по индексу И configId. */
+  private loadGame(): void {
+    const data = this.saveSystem.load()
+    if (!data) return
+    this.timeSystem.setTime(data.timeHours)
+    this.stats.restore(data.stats)
+    this.inventory.restore(data.inventory)
+    data.nodes.forEach((nodeState, index) => {
+      const node = this.nodes[index]
+      const layout = NODE_LAYOUT[index]
+      if (node && layout && layout.configId === nodeState.configId) {
+        node.restore(nodeState)
+      }
+    })
   }
 
   /**
