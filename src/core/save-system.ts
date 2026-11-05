@@ -14,6 +14,8 @@ export interface S_SaveData {
   stats: S_StatsSnapshot
   inventory: S_InvSlot[]
   nodes: S_NodeSaveState[]
+  /** Проценты модулей станции (W2.1), опционально для совместимости старых сейвов. */
+  station?: Record<string, number>
 }
 
 const KEY = 'eotd-save-v1'

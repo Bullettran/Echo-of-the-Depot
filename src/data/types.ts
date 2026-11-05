@@ -59,7 +59,8 @@ export interface S_ItemUse {
 export interface S_ItemConfig {
   id: string
   name: string
-  type: 'material' | 'consumable'
+  /** material — ресурсы крафта, consumable — употребляется кликом, component — детали станции. */
+  type: 'material' | 'consumable' | 'component'
   /** Вместимость одного слота инвентаря для этого предмета. */
   stack: number
   /** Для consumable: что происходит при употреблении (клик в инвентаре). */
@@ -97,4 +98,24 @@ export interface S_RecipeConfig {
     itemId: string
     count: number
   }
+}
+
+export interface S_ModuleConfig {
+  id: string
+  name: string
+  /** Глагол промпта («Починить»). */
+  action: string
+  /** Ключ текстуры из BootScene. */
+  texture: string
+  /** Чем чинить: предмет и сколько процентов даёт одна единица. */
+  repair: {
+    itemId: string
+    percentPerUnit: number
+  }
+}
+
+export interface S_StationConfig {
+  /** Вклад модуля в общий прогресс станции (сумма = 1). */
+  weights: Record<string, number>
+  modules: Record<string, S_ModuleConfig>
 }

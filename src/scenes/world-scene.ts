@@ -10,19 +10,23 @@ import {
   E_StatType,
   type S_EffectConfig,
   type S_ItemConfig,
+  type S_StationConfig,
   type S_ResourceConfig,
   type S_StatsConfig,
 } from '../data/types'
 import { Player } from '../entities/player'
 import { ResourceNode } from '../entities/resource-node'
 import { CraftingSystem, type RecipesTable } from '../systems/crafting-system'
+import { StationSystem } from '../systems/station-system'
 import { TimeSystem } from '../systems/time-system'
 import effectsJson from '../data/effects.json'
 import inventoryJson from '../data/inventory.json'
 import itemsJson from '../data/items.json'
 import recipesJson from '../data/recipes.json'
 import resourcesJson from '../data/resources.json'
+import stationJson from '../data/station.modules.json'
 import statsJson from '../data/stats.json'
+import { StationModule } from '../entities/station-module'
 
 const WORLD_WIDTH = 1600
 const WORLD_HEIGHT = 1200
@@ -40,6 +44,13 @@ const NODE_LAYOUT: Array<{ configId: string; x: number; y: number }> = [
   { configId: 'supply-cache', x: 360, y: 700 },
 ]
 
+/** Расстановка модулей станции (реактор → ворота → вышка), W2.1. */
+const MODULE_LAYOUT: Array<{ moduleId: string; x: number; y: number }> = [
+  { moduleId: 'reactor', x: 620, y: 430 },
+  { moduleId: 'gates', x: 900, y: 430 },
+  { moduleId: 'tower', x: 1080, y: 330 },
+]
+
 /**
  * Мир главы: тайлмап-заглушка, сущности, порядок тиков систем и смерть/респаун.
  * Оркестратор — сам ничего не считает: время/нужды/условия живут в системах и компонентах.
@@ -52,9 +63,11 @@ export class WorldScene extends Phaser.Scene {
   private inventory!: InventoryComponent
   private interact!: InteractComponent
   private crafting!: CraftingSystem
+  private station!: StationSystem
   private saveSystem!: SaveSystem
   private saveTimerMs = 0
   private nodes: ResourceNode[] = []
+  private modules: StationModule[] = []
   private walls!: Phaser.Physics.Arcade.StaticGroup
 
   constructor() {
@@ -96,9 +109,18 @@ export class WorldScene extends Phaser.Scene {
       )
     }
 
+    // станция: система владеет процентами, спрайты — только цели для E
+    const stationConfig = stationJson as S_StationConfig
+    this.station = new StationSystem(gameEvents, stationConfig, this.inventory)
+    for (const layout of MODULE_LAYOUT) {
+      const config = stationConfig.modules[layout.moduleId]
+      if (!config) throw new Error(`Unknown station module: ${layout.moduleId}`)
+      this.modules.push(new StationModule(this, layout.x, layout.y, config, this.station))
+    }
+
     this.interact = new InteractComponent(
       gameEvents,
-      () => this.nodes,
+      () => [...this.nodes, ...this.modules],
       this.player,
       INTERACT_RADIUS,
     )
@@ -138,6 +160,7 @@ export class WorldScene extends Phaser.Scene {
         stats: this.stats,
         inventory: this.inventory,
         crafting: this.crafting,
+        station: this.station,
         saveGame: () => this.saveGame(),
         clearSave: () => this.saveSystem.clear(),
         E_StatType,
@@ -168,7 +191,7 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** Слепок мира в localStorage (время, статы, рюкзак, состояние нод). */
+  /** Слепок мира в localStorage (время, статы, рюкзак, состояние нод и станции). */
   private saveGame(): void {
     const nodes: S_SaveData['nodes'] = []
     this.nodes.forEach((node, index) => {
@@ -182,6 +205,7 @@ export class WorldScene extends Phaser.Scene {
       stats: this.stats.snapshot,
       inventory: this.inventory.slotsView,
       nodes,
+      station: this.station.saveState(),
     }
     this.saveSystem.save(data)
   }
@@ -193,6 +217,7 @@ export class WorldScene extends Phaser.Scene {
     this.timeSystem.setTime(data.timeHours)
     this.stats.restore(data.stats)
     this.inventory.restore(data.inventory)
+    if (data.station) this.station.restore(data.station)
     data.nodes.forEach((nodeState, index) => {
       const node = this.nodes[index]
       const layout = NODE_LAYOUT[index]

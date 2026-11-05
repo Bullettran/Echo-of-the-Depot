@@ -349,3 +349,121 @@ body {
 .craft-btn:not(:disabled):hover {
   background: #24304a;
 }
+
+/* --- Станция --- */
+
+#station-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#station-panel-title {
+  background: var(--panel);
+  border: 1px solid var(--terminal);
+  color: var(--terminal);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.station-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.station-label {
+  font-size: 11px;
+  color: var(--muted);
+  width: 90px;
+}
+
+.station-label.done {
+  color: var(--terminal);
+}
+
+.station-track {
+  flex: 1;
+  height: 6px;
+  background: #0a0e18;
+  border: 1px solid #2a2f3d;
+}
+
+.station-fill {
+  height: 100%;
+  width: 0%;
+  background: #d9c08a;
+  transition: width 0.3s ease;
+}
+
+.station-fill.done {
+  background: var(--terminal);
+}
+
+/* --- Финал: станция ожила --- */
+
+#completion-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 14, 0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: auto;
+  animation: fade-in 1.2s ease;
+}
+
+#completion-overlay.hidden {
+  display: none;
+}
+
+.completion-title {
+  font-size: 42px;
+  letter-spacing: 8px;
+  color: var(--terminal);
+  text-shadow: 0 0 24px rgba(158, 206, 106, 0.5);
+}
+
+.completion-sub {
+  font-size: 15px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+
+.completion-btn {
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid var(--terminal);
+  color: var(--terminal);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 28px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 2px;
+}
+
+.completion-btn:hover {
+  background: rgba(158, 206, 106, 0.12);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

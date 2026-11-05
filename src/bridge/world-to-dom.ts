@@ -1,11 +1,14 @@
 import { gameEvents } from '../core/event-bus'
-import type { S_ItemConfig, S_RecipeConfig } from '../data/types'
+import type { S_ItemConfig, S_RecipeConfig, S_StationConfig } from '../data/types'
 import { Hud } from '../ui/hud/hud'
 import { InventoryPanel } from '../ui/inventory/inventory-panel'
 import { Toasts } from '../ui/toasts/toasts'
+import { StationPanel } from '../ui/station/station-panel'
+import { CompletionOverlay } from '../ui/station/completion-overlay'
 import inventoryJson from '../data/inventory.json'
 import itemsJson from '../data/items.json'
 import recipesJson from '../data/recipes.json'
+import stationJson from '../data/station.modules.json'
 
 /**
  * Мост «мир → DOM» (правило №3): ЕДИНСТВЕННОЕ место, где подписки UI
@@ -18,8 +21,11 @@ export function mountWorldToDomBridge(): void {
 
   const items = itemsJson as Record<string, S_ItemConfig>
   const recipes = recipesJson as Record<string, S_RecipeConfig>
+  const stationConfig = stationJson as S_StationConfig
   const hud = new Hud(root)
   const toasts = new Toasts(root)
+  const stationPanel = new StationPanel(root, stationConfig)
+  const completion = new CompletionOverlay(root)
   const inventoryPanel = new InventoryPanel(
     root,
     items,
@@ -28,7 +34,6 @@ export function mountWorldToDomBridge(): void {
     (itemId) => gameEvents.emit('ui:use-item', { itemId }),
     (recipeId) => gameEvents.emit('ui:craft', { recipeId }),
   )
-
   gameEvents.on('time:minute', ({ day, hour, minute }) => {
     hud.setClock(day, hour, minute)
   })
@@ -57,6 +62,19 @@ export function mountWorldToDomBridge(): void {
   gameEvents.on('crafting:crafted', ({ itemId, count }) => {
     const name = items[itemId]?.name ?? itemId
     toasts.show(`Создано: ${name} ×${count}`)
+  })
+  gameEvents.on('station:moduleChanged', ({ moduleId, percent }) => {
+    stationPanel.setModule(moduleId, percent)
+  })
+  gameEvents.on('station:progress', ({ percent }) => {
+    stationPanel.setTotal(percent)
+  })
+  gameEvents.on('station:repairFailed', ({ itemId, count }) => {
+    const name = items[itemId]?.name ?? itemId
+    toasts.show(`Нужен: ${name} ×${count}`)
+  })
+  gameEvents.on('station:completed', () => {
+    completion.show()
   })
 
   // Tab — рюкзак: UI-комбинация, ловится в мосту (мир про неё не знает)

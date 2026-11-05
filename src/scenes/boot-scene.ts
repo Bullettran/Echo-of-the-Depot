@@ -15,6 +15,7 @@ export class BootScene extends Phaser.Scene {
     this.createPlayerTexture()
     this.createGroundTexture()
     this.createNodeTextures()
+    this.createModuleTextures()
     this.scene.start('world')
   }
 
@@ -85,6 +86,43 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(9, 2, 4, 14)
     g.fillRect(0, 7, 22, 4)
     g.generateTexture('node-cache', 22, 16)
+
+    g.destroy()
+  }
+
+  /** Текстуры модулей станции (ключи = texture в station.modules.json). */
+  private createModuleTextures(): void {
+    const g = this.make.graphics({ x: 0, y: 0 }, false)
+
+    // реакторная: тёмный корпус с сердцевиной
+    g.fillStyle(0x3a4050, 1)
+    g.fillRect(0, 0, 24, 24)
+    g.fillStyle(0x262b38, 1)
+    g.fillRect(0, 0, 24, 4)
+    g.fillRect(0, 20, 24, 4)
+    g.fillStyle(0x7a4a4a, 1)
+    g.fillRect(8, 8, 8, 8)
+    g.generateTexture('module-reactor', 24, 24)
+
+    // ворота депо: две створки с рельсами-направляющими
+    g.fillStyle(0x4a4440, 1)
+    g.fillRect(0, 0, 28, 16)
+    g.fillStyle(0x2e2b28, 1)
+    g.fillRect(0, 0, 28, 3)
+    g.fillRect(0, 13, 28, 3)
+    g.fillStyle(0x5e574f, 1)
+    g.fillRect(3, 3, 9, 10)
+    g.fillRect(16, 3, 9, 10)
+    g.generateTexture('module-gates', 28, 16)
+
+    // сигнальная вышка: мачта с перекладинами и лампой
+    g.fillStyle(0x555f6e, 1)
+    g.fillRect(6, 6, 4, 20)
+    g.fillRect(2, 12, 12, 2)
+    g.fillRect(3, 18, 10, 2)
+    g.fillStyle(0x8a6a4a, 1)
+    g.fillRect(3, 2, 10, 5)
+    g.generateTexture('module-tower', 16, 26)
 
     g.destroy()
   }

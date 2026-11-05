@@ -25,6 +25,10 @@ export type GameEventMap = {
   /** Команда из UI: скрафтить рецепт (валидацию делает мир). */
   'ui:craft': { recipeId: string }
   'crafting:crafted': { recipeId: string; itemId: string; count: number }
+  'station:moduleChanged': { moduleId: string; percent: number }
+  'station:progress': { percent: number }
+  'station:completed': Record<string, never>
+  'station:repairFailed': { itemId: string; count: number }
 }
 
 /**

@@ -74,6 +74,13 @@ UI никогда не читает мир сам; мир не читает DOM.
 - **Как добавить рецепт:** блок в recipes.json; если результат — новый предмет, добавить его
   в items.json. Секция крафта в панели рюкзака подхватит автоматически.
 
+### station.modules.json — модули станции (W2.1)
+- `weights` — вклад модуля в общий прогресс (сумма = 1): реактор 0.4, ворота 0.3, вышка 0.3.
+- `modules.{id}` — name/action/texture + `repair`: каким предметом чинить и сколько процентов
+  даёт одна единица (сейчас ремкомплект, +50% за штуку).
+- **Как добавить модуль:** блок в modules + weight (пересчитать сумму весов!) + точка в
+  `MODULE_LAYOUT` (WorldScene) + текстура в BootScene. Панель станции подхватит автоматически.
+
 ### inventory.json
 - `capacity` — число слотов рюкзака (используют InventoryComponent и сетка UI).
 
@@ -110,6 +117,10 @@ UI никогда не читает мир сам; мир не читает DOM.
 | `ui:use-item` | itemId | панель рюкзака → сцена (употребить) |
 | `ui:craft` | recipeId | панель крафта → сцена (создать) |
 | `crafting:crafted` | recipeId, itemId, count | CraftingSystem → тост «Создано: …» |
+| `station:moduleChanged` | moduleId, percent | StationSystem → панель станции |
+| `station:progress` | percent (общий) | StationSystem → заголовок панели |
+| `station:completed` | — | StationSystem → титр финала + гудок |
+| `station:repairFailed` | itemId, count | StationSystem → тост «Нужен: …» |
 
 **Как добавить событие:** ключ `domain:name` в `GameEventMap` (тип payload обязательно),
 эмит из системы, подписка в bridge (если нужен UI). UI не подписывается нигде больше.
@@ -188,6 +199,15 @@ UI никогда не читает мир сам; мир не читает DOM.
 
 - Верстак появится в W5 как build-spot; пока крафт «полевой» — секция в панели рюкзака.
 
+### `StationSystem` (systems/station-system.ts) — станция-депо (W2.1)
+| Метод | Делает | События |
+|---|---|---|
+| `repair(moduleId)` | списать 1 ремкомплект, поднять процент модуля; без предмета — отказ | `station:moduleChanged`, `station:progress`, `station:completed`, `station:repairFailed` |
+| `getPercent(id)` / `totalPercent` | процент модуля / взвешенный общий | — |
+| `saveState()` / `restore()` | сейв/загрузка (restore также эмитит текущее состояние) | — |
+
+- Чистый TS + инжект инвентаря — полностью тестируется. Финал эмитится один раз.
+
 ### `SaveSystem` (core/save-system.ts) — сейв localStorage
 | Метод | Делает |
 |---|---|
@@ -240,12 +260,17 @@ UI никогда не читает мир сам; мир не читает DOM.
 
 - Имена состояний — `nodeState` (НЕ `state`: у Phaser-спрайта это занято, strict TS не даст).
 
+### `StationModule` (entities/station-module.ts) — модуль станции
+Реализует `I_Interactable`; вся логика — в StationSystem (`interact()` → `station.repair()`).
+Процент в подписи промпта живой; при 100% — зелёный tint, IsAvailable=false.
+
 ### `WorldScene` — оркестратор мира
 | Член | Делает |
 |---|---|
-| `create()` | земля, стены-рамка, игрок, камера, системы, ноды из `NODE_LAYOUT`, Interact, обработчики `ui:use-item` и `player:died`, dev-хук `__eotd` |
-| `update()` | порядок тиков: время → условия → статы → ноды → промпт → игрок; dt клампится до 50 мс |
+| `create()` | земля, стены-рамка, игрок, камера, системы, ноды из `NODE_LAYOUT`, модули из `MODULE_LAYOUT`, Interact (цели = ноды + модули), обработчики `ui:use-item`/`ui:craft`/`player:died`, сейв, dev-хук `__eotd` |
+| `update()` | порядок тиков: время → условия → статы → ноды → промпт → игрок; автосейв; dt клампится до 50 мс |
 | `useItem(itemId)` | consumable из рюкзака → статы (`S_ItemUse`); валидация в мире |
+| `saveGame()` / `loadGame()` | слепок мира (время, статы, рюкзак, ноды, станция) ↔ localStorage |
 | `createWalls()` | статические прямоугольники по периметру (до Tiled-коллизий) |
 
 - Отписки (`ui:use-item`, `player:died`, `interact.destroy()`) — на `SHUTDOWN` сцены.
@@ -276,6 +301,11 @@ UI никогда не читает мир сам; мир не читает DOM.
 |---|---|
 | `show(text)` | тост справа-снизу, максимум 4, авто-скрытие 2.5 с |
 
+### `StationPanel` / `CompletionOverlay` (ui/station/)
+- `StationPanel`: строки модулей с мини-барами (правый-верх) + общий процент в заголовке.
+- `CompletionOverlay`: финальный титр «СТАНЦИЯ ОЖИЛА» + кнопка «Продолжить»; на показе
+  играет `playHorn()` из `core/sfx.ts` (синтез WebAudio, без ассетов; заменяется файлами в W6).
+
 - **Как добавить элемент HUD/панель:** разметка в конструкторе → метод-сеттер → подписка в
   bridge. Никаких таймеров опроса: только события.
 - Drag-n-drop слотов отложен (W2+, BACKLOG): без сортировки/экипировки он ничего не даёт.
@@ -302,6 +332,7 @@ UI никогда не читает мир сам; мир не читает DOM.
 3. **Dev-хук** `window.__eotd` (только DEV-сборка): `player` (спрайт: `.setPosition`),
    `stats` (StatsComponent: `.add()`, `.snapshot`, `.IsDeadState`), `inventory`
    (InventoryComponent: `.slotsView`, `.count()`, `.add()`), `crafting` (CraftingSystem),
+   `station` (StationSystem: `.repair()`, `.getPercent()`, `.totalPercent`),
    `saveGame()` / `clearSave()` — принудительный сейв/сброс для тестов, `E_StatType`.
    Прод-сборка хук не содержит. Сброс прогресса игрока: `localStorage.clear()` в консоли.
 
