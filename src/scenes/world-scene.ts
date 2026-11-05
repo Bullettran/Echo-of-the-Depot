@@ -36,6 +36,9 @@ export class WorldScene extends Phaser.Scene {
     // кламп от прыжка времени после сворачивания вкладки
     const dtMs = Math.min(delta, 50)
     this.timeSystem.update(dtMs)
+    // UpdateList Phaser вызывает у GameObjects только preUpdate —
+    // update() игрока запускаем из сцены явно
+    this.player.update()
   }
 
   private createWalls(): void {
