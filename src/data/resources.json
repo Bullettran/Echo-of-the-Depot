@@ -1,0 +1,29 @@
+{
+  "scrap-heap": {
+    "id": "scrap-heap",
+    "name": "Куча металлолома",
+    "action": "Собрать",
+    "texture": "node-scrap",
+    "drops": [{ "itemId": "scrap", "count": 3 }],
+    "respawnHours": 2
+  },
+  "copper-node": {
+    "id": "copper-node",
+    "name": "Медная обмотка",
+    "action": "Собрать",
+    "texture": "node-copper",
+    "drops": [{ "itemId": "copper", "count": 2 }],
+    "respawnHours": 3
+  },
+  "supply-cache": {
+    "id": "supply-cache",
+    "name": "Схрон с припасами",
+    "action": "Вскрыть",
+    "texture": "node-cache",
+    "drops": [
+      { "itemId": "ration", "count": 1 },
+      { "itemId": "water", "count": 1 }
+    ],
+    "respawnHours": 4
+  }
+}

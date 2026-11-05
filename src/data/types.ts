@@ -48,3 +48,42 @@ export interface S_ConditionView {
   name: string
   remainingHours: number | null
 }
+
+/** Эффект употребления предмета: сколько и каких статов восстановить/снять. */
+export interface S_ItemUse {
+  hunger?: number
+  thirst?: number
+  hp?: number
+}
+
+export interface S_ItemConfig {
+  id: string
+  name: string
+  type: 'material' | 'consumable'
+  /** Вместимость одного слота инвентаря для этого предмета. */
+  stack: number
+  /** Для consumable: что происходит при употреблении (клик в инвентаре). */
+  use?: S_ItemUse
+}
+
+export interface S_InvSlot {
+  itemId: string
+  count: number
+}
+
+export interface S_ResourceDrop {
+  itemId: string
+  count: number
+}
+
+export interface S_ResourceConfig {
+  id: string
+  name: string
+  /** Глагол для промпта взаимодействия: «Собрать», «Вскрыть» и т.п. */
+  action: string
+  /** Ключ текстуры из BootScene. */
+  texture: string
+  drops: S_ResourceDrop[]
+  /** Часов до респауна после истощения (игровых: день = 24 часа = 10 реальных минут). */
+  respawnHours: number
+}

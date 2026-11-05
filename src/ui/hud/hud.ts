@@ -22,6 +22,7 @@ export class Hud {
   private readonly fills = new Map<keyof S_StatsSnapshot, HTMLElement>()
   private readonly conditionsEl: HTMLElement
   private readonly statusEl: HTMLElement
+  private readonly promptEl: HTMLElement
   private statusTimer: number | null = null
 
   /** @param root — контейнер #ui, в который монтируется вся разметка HUD. */
@@ -67,8 +68,13 @@ export class Hud {
     this.statusEl = document.createElement('div')
     this.statusEl.id = 'hud-status'
 
+    // промпт взаимодействия по центру-низу: «[E] Собрать: …»
+    this.promptEl = document.createElement('div')
+    this.promptEl.id = 'hud-prompt'
+    this.promptEl.classList.add('hidden')
+
     hud.append(this.clockEl, hintEl, barsEl, this.conditionsEl, this.statusEl)
-    root.append(hud)
+    root.append(hud, this.promptEl)
   }
 
   /** Обновить часы: «День N · ЧЧ:ММ» (данные приходят из 'time:minute'). */
@@ -108,5 +114,15 @@ export class Hud {
       this.statusEl.classList.remove('visible')
       this.statusTimer = null
     }, durationMs)
+  }
+
+  /** Промпт взаимодействия: подпись цели в радиусе E или null — спрятать. */
+  setPrompt(label: string | null): void {
+    if (label === null) {
+      this.promptEl.classList.add('hidden')
+      return
+    }
+    this.promptEl.textContent = `[E] ${label}`
+    this.promptEl.classList.remove('hidden')
   }
 }

@@ -41,6 +41,9 @@ UI никогда не читает мир сам; мир не читает DOM.
 | `S_StatsConfig` | схема stats.json: start/max/decayPerHour |
 | `S_EffectConfig` | схема effects.json: name, hpPerHour?, durationHours?, statCapPercent? |
 | `S_ConditionView` | payload для UI: id, name, remainingHours |
+| `S_ItemConfig` / `S_ItemUse` | схема items.json: name/type/stack + эффект употребления |
+| `S_InvSlot` | слот рюкзака: `{ itemId, count }` |
+| `S_ResourceConfig` | схема resources.json: name/action/texture/drops/respawnHours |
 
 ### stats.json — баланс нужд
 - `start` — стартовые значения; `max` — глобальные максимумы (нормировка полосок);
@@ -52,6 +55,21 @@ UI никогда не читает мир сам; мир не читает DOM.
 - Ключ объекта = `E_ConditionId` (значения енума, kebab-case!).
 - `hpPerHour` — урон HP за игровой час (отрицательный); `durationHours` — срок
   (нет поля = активен, пока есть условие-источник); `statCapPercent` — потолок всех статов, %.
+
+### items.json — предметы
+- `type`: `material` (строительный ресурс) | `consumable` (можно употребить кликом в инвентаре).
+- `stack` — вместимость слота; `use` — эффект употребления (какие статы и на сколько).
+- **Как добавить предмет:** блок в items.json (+ CSS-класс `.item-{id}` с цветом для иконки).
+  UI подхватит имя/тултип автоматически.
+
+### resources.json — ресурсные ноды
+- `action` — глагол промпта («Собрать», «Вскрыть»); `texture` — ключ текстуры из BootScene;
+  `drops` — что даёт при сборе; `respawnHours` — через сколько **игровых** часов оживает.
+- **Как добавить тип ноды:** блок в resources.json + текстура в BootScene `createNodeTextures()`
+  + точка в `NODE_LAYOUT` (WorldScene). С W2 точки переедут в объектный слой Tiled-карты.
+
+### inventory.json
+- `capacity` — число слотов рюкзака (используют InventoryComponent и сетка UI).
 
 **Как добавить дебафф:** 1) значение в `E_ConditionId` → 2) блок в effects.json →
 3) триггер включения/выключения в `StatsComponent.syncConditions()` или новом источнике →
@@ -71,6 +89,19 @@ UI никогда не читает мир сам; мир не читает DOM.
 ### `gameEvents` — синглтон шины
 Мост к DOM и сцена используют его. Системы/компоненты получают шину **инжектом**
 в конструктор (тестируемость) — в тестах создаётся свой `EventBus`.
+
+### Карта событий (GameEventMap) — на 05.11
+| Канал | Payload | Эмиттер → потребитель |
+|---|---|---|
+| `time:minute` / `time:newDay` / `time:phase` | время | TimeSystem → HUD (часы) |
+| `stats:changed` | статы 0..1 | StatsComponent → HUD полоски |
+| `conditions:changed` | активные дебаффы | Conditions → HUD бейджи |
+| `player:died` | — | Stats → сцена (респаун) + HUD (сообщение) |
+| `interact:prompt` | label \| null | Interact → HUD промпт «[E] …» |
+| `loot:collected` | itemId, count | ResourceNode → тост «+N Предмет» |
+| `inventory:changed` | слоты | Inventory → панель рюкзака |
+| `inventory:full` | itemId | ResourceNode → тост «Рюкзак полон» |
+| `ui:use-item` | itemId | панель рюкзака → сцена (употребить) |
 
 **Как добавить событие:** ключ `domain:name` в `GameEventMap` (тип payload обязательно),
 эмит из системы, подписка в bridge (если нужен UI). UI не подписывается нигде больше.
@@ -126,6 +157,29 @@ UI никогда не читает мир сам; мир не читает DOM.
 - **Смерть/респаун:** позицию игрока восстанавливает сцена (см. WorldScene), статы —
   сам компонент. Экран смерти — будущий DOM-оверлей на `player:died` (BACKLOG).
 
+### `InventoryComponent` (inventory-component.ts) — рюкзак
+| Метод | Делает | События |
+|---|---|---|
+| `add(itemId, count)` | докладывает в стаки, затем в пустые слоты; возвращает сколько поместилось | `inventory:changed` |
+| `remove(itemId, count)` | атомарно забирает (не хватает — false, ничего не тронуто) | `inventory:changed` |
+| `count(itemId)` / `slotsView` | чтение | — |
+| `canFit(entries)` | сухой прогон «влезет ли весь набор» — ноды тратятся только при полном помещении | — |
+
+- Число слотов — data/inventory.json; стеки предметов — items.json (`stack`).
+- **Доработка (по GAME_PLAN):** весовой лимит/Overburdened — добавить поле `weight` в
+  items.json и подсчёт в этом компоненте; UI перегруза — слушатель `inventory:changed`.
+
+### `InteractComponent` (interact-component.ts) — взаимодействие по E
+| Метод | Делает | События |
+|---|---|---|
+| `bindKey()` / `destroy()` | window-листенер E (`!e.repeat` — без авто-повтора) | — |
+| `update()` | ближайшая доступная цель в радиусе; промпт эмитится при смене цели | `interact:prompt` |
+
+- Радиус — константа `INTERACT_RADIUS` в WorldScene (96 px).
+- Цели — всё, что реализует `I_Interactable` (entities/interactable.ts):
+  `getLabel / IsAvailable / interact / getInteractCenter`. Станция-модули (W2) и верстак
+  реализуют этот же интерфейс — система подхватит их без изменений.
+
 ---
 
 ## 5. Сущности и сцены
@@ -142,20 +196,31 @@ UI никогда не читает мир сам; мир не читает DOM.
   компоненты, НЕ в Player (правило 1).
 
 ### `BootScene` — генератор текстур-заглушек
-- `createPlayerTexture()` → текстура `player` 16×16; `createGroundTexture()` → `ground` 32×32.
-- **Доработка (W1.2):** подключение Kenney-паков — `this.load.atlasXML(...)` в preload,
+- `createPlayerTexture()` → `player` 16×16; `createGroundTexture()` → `ground` 32×32;
+  `createNodeTextures()` → `node-scrap`, `node-copper`, `node-cache` (ключи = texture в resources.json).
+- **Доработка (W1.3):** подключение Kenney-паков — `this.load.atlasXML(...)` в preload,
   генераторы удалить, ключи текстур сохранить.
+
+### `ResourceNode` (entities/resource-node.ts) — ресурсная нода
+| Метод | Делает | События |
+|---|---|---|
+| `getLabel()` / `IsAvailable()` / `getInteractCenter()` | контракт `I_Interactable` | — |
+| `interact()` | если дроп влезает целиком (`canFit`) — добавить в рюкзак и истощить (alpha 0.25); иначе `inventory:full` | `loot:collected`, `inventory:full` |
+| `tick(dtHours)` | отсчёт `respawnHours`, затем оживание (alpha 1) | — |
+
+- Имена состояний — `nodeState` (НЕ `state`: у Phaser-спрайта это занято, strict TS не даст).
 
 ### `WorldScene` — оркестратор мира
 | Член | Делает |
 |---|---|
-| `create()` | земля, стены-рамка, игрок, камера (follow, zoom 2), системы, обработчик `player:died` (телепорт в центр + `stats.respawn()`), dev-хук `__eotd` |
-| `update()` | порядок тиков: время → условия → статы → игрок; dt клампится до 50 мс |
+| `create()` | земля, стены-рамка, игрок, камера, системы, ноды из `NODE_LAYOUT`, Interact, обработчики `ui:use-item` и `player:died`, dev-хук `__eotd` |
+| `update()` | порядок тиков: время → условия → статы → ноды → промпт → игрок; dt клампится до 50 мс |
+| `useItem(itemId)` | consumable из рюкзака → статы (`S_ItemUse`); валидация в мире |
 | `createWalls()` | статические прямоугольники по периметру (до Tiled-коллизий) |
 
-- Отписка от `player:died` — на `SHUTDOWN` сцены (дисциплина против дублей).
-- **Доработка:** карта из Tiled (W1.2+) заменит tileSprite+стены: слои
-  ground/decor/collision + объектные слои спавна (см. скил web-graphics).
+- Отписки (`ui:use-item`, `player:died`, `interact.destroy()`) — на `SHUTDOWN` сцены.
+- **Доработка:** карта из Tiled (W2) заменит tileSprite+стены+NODE_LAYOUT: слои
+  ground/decor/collision + объектный слой нод (см. скил web-graphics).
 
 ---
 
@@ -167,15 +232,29 @@ UI никогда не читает мир сам; мир не читает DOM.
 | `setClock(day, hour, minute)` | строка «День N · ЧЧ:ММ» | `time:minute` |
 | `setStats(stats)` | ширины полосок (значения 0..1) | `stats:changed` |
 | `setConditions(active)` | бейджи состояний | `conditions:changed` |
+| `setPrompt(label \| null)` | промпт «[E] …» по центру-низу | `interact:prompt` |
 | `showStatus(text, durationMs?)` | одноразовое сообщение (смерть и т.п.) | точечные вызовы моста |
 
-- **Как добавить элемент HUD:** разметка в конструкторе → метод-сеттер → подписка в
+### `InventoryPanel` (ui/inventory/inventory-panel.ts)
+| Метод | Делает |
+|---|---|
+| `toggle()` | открыть/закрыть (Tab ловится в мосту) |
+| `render(slots)` | сетка слотов; тултип через `title`; клик по consumable → команда |
+
+### `Toasts` (ui/toasts/toasts.ts)
+| Метод | Делает |
+|---|---|
+| `show(text)` | тост справа-снизу, максимум 4, авто-скрытие 2.5 с |
+
+- **Как добавить элемент HUD/панель:** разметка в конструкторе → метод-сеттер → подписка в
   bridge. Никаких таймеров опроса: только события.
+- Drag-n-drop слотов отложен (W2+, BACKLOG): без сортировки/экипировки он ничего не даёт.
 - **Доработка (W2):** терминал АРХИВА — отдельный модуль в `ui/archiv-terminal/`,
   стиль и глитчи — скил web-dom-ui.
 
 ### `bridge/world-to-dom.ts` — `mountWorldToDomBridge()`
-Единственное место подписок DOM на шину. Вызывается один раз из main.ts.
+Единственное место подписок DOM на шину + единственное место, где DOM-клавиши (Tab)
+превращаются в команды `ui:*`. Вызывается один раз из main.ts.
 
 ---
 
@@ -190,8 +269,9 @@ UI никогда не читает мир сам; мир не читает DOM.
    playwright-cli.cmd console error                               # должно быть пусто
    playwright-cli.cmd close; Stop-Job $job; Remove-Job $job
    ```
-3. **Dev-хук** `window.__eotd` (только DEV-сборка): `player` (спрайт), `stats`
-   (StatsComponent: `.add()`, `.snapshot`, `.IsDeadState`), `E_StatType`.
+3. **Dev-хук** `window.__eotd` (только DEV-сборка): `player` (спрайт: `.setPosition`),
+   `stats` (StatsComponent: `.add()`, `.snapshot`, `.IsDeadState`), `inventory`
+   (InventoryComponent: `.slotsView`, `.count()`), `E_StatType`.
    Прод-сборка хук не содержит.
 
 ## 8. Чек-лист доработки (перед «готово»)

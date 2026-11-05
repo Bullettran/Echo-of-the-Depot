@@ -1,16 +1,40 @@
 import Phaser from 'phaser'
 import { ConditionsComponent } from '../components/conditions-component'
+import { InventoryComponent } from '../components/inventory-component'
+import { InteractComponent } from '../components/interact-component'
 import { StatsComponent } from '../components/stats-component'
 import { gameEvents } from '../core/event-bus'
-import { E_ConditionId, E_StatType, type S_EffectConfig, type S_StatsConfig } from '../data/types'
+import {
+  E_ConditionId,
+  E_StatType,
+  type S_EffectConfig,
+  type S_ItemConfig,
+  type S_ResourceConfig,
+  type S_StatsConfig,
+} from '../data/types'
 import { Player } from '../entities/player'
+import { ResourceNode } from '../entities/resource-node'
 import { TimeSystem } from '../systems/time-system'
 import effectsJson from '../data/effects.json'
+import inventoryJson from '../data/inventory.json'
+import itemsJson from '../data/items.json'
+import resourcesJson from '../data/resources.json'
 import statsJson from '../data/stats.json'
 
 const WORLD_WIDTH = 1600
 const WORLD_HEIGHT = 1200
 const WALL_THICKNESS = 32
+const INTERACT_RADIUS = 96
+
+/** Ручная расстановка нод до Tiled-карты (W2): id конфига из resources.json + позиция. */
+const NODE_LAYOUT: Array<{ configId: string; x: number; y: number }> = [
+  { configId: 'scrap-heap', x: 420, y: 340 },
+  { configId: 'scrap-heap', x: 1180, y: 820 },
+  { configId: 'copper-node', x: 1240, y: 420 },
+  { configId: 'copper-node', x: 520, y: 880 },
+  { configId: 'supply-cache', x: 830, y: 380 },
+  { configId: 'supply-cache', x: 360, y: 700 },
+]
 
 /**
  * Мир главы: тайлмап-заглушка, сущности, порядок тиков систем и смерть/респаун.
@@ -21,13 +45,16 @@ export class WorldScene extends Phaser.Scene {
   private timeSystem!: TimeSystem
   private stats!: StatsComponent
   private conditions!: ConditionsComponent
+  private inventory!: InventoryComponent
+  private interact!: InteractComponent
+  private nodes: ResourceNode[] = []
   private walls!: Phaser.Physics.Arcade.StaticGroup
 
   constructor() {
     super('world')
   }
 
-  /** Построение мира. Порядок тиков в update(): время → условия → статы → игрок. */
+  /** Построение мира. Порядок тиков в update(): время → условия → статы → ноды → промпт → игрок. */
   create(): void {
     this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'ground').setOrigin(0)
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
@@ -47,19 +74,49 @@ export class WorldScene extends Phaser.Scene {
       effectsJson as Record<E_ConditionId, S_EffectConfig>,
     )
     this.stats = new StatsComponent(gameEvents, statsJson as S_StatsConfig, this.conditions)
+    this.inventory = new InventoryComponent(
+      gameEvents,
+      inventoryJson,
+      itemsJson as Record<string, S_ItemConfig>,
+    )
+
+    const resourceConfigs = resourcesJson as Record<string, S_ResourceConfig>
+    for (const layout of NODE_LAYOUT) {
+      const config = resourceConfigs[layout.configId]
+      if (!config) throw new Error(`Unknown resource config: ${layout.configId}`)
+      this.nodes.push(
+        new ResourceNode(this, layout.x, layout.y, config, this.inventory, gameEvents),
+      )
+    }
+
+    this.interact = new InteractComponent(
+      gameEvents,
+      () => this.nodes,
+      this.player,
+      INTERACT_RADIUS,
+    )
+    this.interact.bindKey()
+
+    // команда из UI: употребить предмет (клик по слоту в инвентаре)
+    const offUseItem = gameEvents.on('ui:use-item', ({ itemId }) => this.useItem(itemId))
 
     // смерть → респаун в центре депо (позже — у депо), статы восстанавливает сам StatsComponent
     const offDied = gameEvents.on('player:died', () => {
       this.player.setPosition(WORLD_WIDTH / 2, WORLD_HEIGHT / 2)
       this.stats.respawn()
     })
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offDied)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offUseItem()
+      offDied()
+      this.interact.destroy()
+    })
 
     // dev-only хук для смоук-тестов (playwright-cli)
     if (import.meta.env.DEV) {
       ;(window as unknown as Record<string, unknown>).__eotd = {
         player: this.player,
         stats: this.stats,
+        inventory: this.inventory,
         E_StatType,
       }
     }
@@ -67,16 +124,31 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Игровой цикл сцены. dt клампится (сворачивание вкладки не должно телепортировать время),
-   * TimeSystem возвращает игровые часы — их получают условия и нужды.
+   * TimeSystem возвращает игровые часы — их получают условия, нужды и ноды.
    */
   update(_time: number, delta: number): void {
     const dtMs = Math.min(delta, 50)
     const dtHours = this.timeSystem.update(dtMs)
     this.conditions.tick(dtHours)
     this.stats.tick(dtHours)
+    for (const node of this.nodes) node.tick(dtHours)
+    this.interact.update()
     // UpdateList Phaser вызывает у GameObjects только preUpdate —
     // update() игрока запускаем из сцены явно
     this.player.update()
+  }
+
+  /**
+   * Употребить предмет из рюкзака (команда 'ui:use-item').
+   * Валидация здесь: consumable с эффектами, предмет в наличии.
+   */
+  private useItem(itemId: string): void {
+    const item = (itemsJson as Record<string, S_ItemConfig>)[itemId]
+    if (!item?.use) return
+    if (!this.inventory.remove(itemId, 1)) return
+    if (item.use.hunger !== undefined) this.stats.add(E_StatType.Hunger, item.use.hunger)
+    if (item.use.thirst !== undefined) this.stats.add(E_StatType.Thirst, item.use.thirst)
+    if (item.use.hp !== undefined) this.stats.add(E_StatType.Hp, item.use.hp)
   }
 
   /** Рамка мира из статических прямоугольников (пока нет тайлмап-коллизий из Tiled, W1.2+). */

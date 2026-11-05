@@ -14,6 +14,7 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     this.createPlayerTexture()
     this.createGroundTexture()
+    this.createNodeTextures()
     this.scene.start('world')
   }
 
@@ -48,6 +49,43 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(8, 12, 6, 4)
     g.fillRect(20, 22, 5, 3)
     g.generateTexture('ground', 32, 32)
+    g.destroy()
+  }
+
+  /** Текстуры ресурсных нод (ключи = texture в resources.json): scrap/copper/cache. */
+  private createNodeTextures(): void {
+    const g = this.make.graphics({ x: 0, y: 0 }, false)
+
+    // куча металлолома: серые пластины
+    g.fillStyle(0x6b7280, 1)
+    g.fillRect(0, 6, 24, 10)
+    g.fillStyle(0x868e9c, 1)
+    g.fillRect(4, 2, 14, 6)
+    g.fillStyle(0x49505e, 1)
+    g.fillRect(3, 9, 6, 3)
+    g.fillRect(14, 10, 5, 3)
+    g.generateTexture('node-scrap', 24, 16)
+
+    // медная обмотка: оранжевый блок с прожилками
+    g.fillStyle(0xb87333, 1)
+    g.fillRect(0, 4, 18, 14)
+    g.fillStyle(0xd98e4a, 1)
+    g.fillRect(3, 2, 12, 5)
+    g.fillStyle(0x8a5526, 1)
+    g.fillRect(4, 9, 3, 6)
+    g.fillRect(10, 7, 3, 8)
+    g.generateTexture('node-copper', 18, 18)
+
+    // схрон: ящик с крестовиной
+    g.fillStyle(0x8b5a2b, 1)
+    g.fillRect(0, 2, 22, 14)
+    g.fillStyle(0x5e3d1d, 1)
+    g.fillRect(2, 4, 18, 10)
+    g.fillStyle(0xa97640, 1)
+    g.fillRect(9, 2, 4, 14)
+    g.fillRect(0, 7, 22, 4)
+    g.generateTexture('node-cache', 22, 16)
+
     g.destroy()
   }
 }

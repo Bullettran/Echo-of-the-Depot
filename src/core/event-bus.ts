@@ -1,4 +1,4 @@
-import { E_TimePhase, type S_ConditionView } from '../data/types'
+import { E_TimePhase, type S_ConditionView, type S_InvSlot } from '../data/types'
 
 type Handler<T> = (payload: T) => void
 
@@ -15,6 +15,13 @@ export type GameEventMap = {
   'stats:changed': { hp: number; hunger: number; thirst: number }
   'conditions:changed': { active: S_ConditionView[] }
   'player:died': { hp: number }
+  /** Промпт взаимодействия: label цели в радиусе или null (спрятать). */
+  'interact:prompt': { label: string | null }
+  'loot:collected': { itemId: string; count: number }
+  'inventory:changed': { slots: S_InvSlot[] }
+  'inventory:full': { itemId: string }
+  /** Команда из UI: употребить предмет (валидацию делает мир). */
+  'ui:use-item': { itemId: string }
 }
 
 /**

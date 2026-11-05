@@ -1,0 +1,18 @@
+{
+  "scrap": { "id": "scrap", "name": "Металлолом", "type": "material", "stack": 50 },
+  "copper": { "id": "copper", "name": "Медь", "type": "material", "stack": 50 },
+  "ration": {
+    "id": "ration",
+    "name": "Консервы",
+    "type": "consumable",
+    "stack": 10,
+    "use": { "hunger": 40 }
+  },
+  "water": {
+    "id": "water",
+    "name": "Фляга с водой",
+    "type": "consumable",
+    "stack": 10,
+    "use": { "thirst": 50 }
+  }
+}
